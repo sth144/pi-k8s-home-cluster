@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  namespace: default
+  name: home-assistant-ingress
+spec:
+  rules:
+      # TODO: get this working using pihole DNS
+    - host: home.assistant
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: home-assistant
+              servicePort: 8123

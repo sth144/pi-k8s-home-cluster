@@ -1,0 +1,37 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: home-assistant
+  name: home-assistant
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home-assistant
+  template:
+    metadata:
+      labels:
+        app: home-assistant
+        name: home-assistant
+    spec:
+      volumes:
+        - name: ha-storage
+          persistentVolumeClaim:
+            claimName: home-assistant-storage
+        - name: dev-usb0
+          hostPath:
+            path: /dev/ttyACM0
+        - name: dev-ama0
+          hostPath:
+            path: /dev/ttyAMA0
+      containers:
+        - image: homeassistant/raspberrypi3-homeassistant:0.94.1
+          name: home-assistant
+          volumeMounts:
+            - mountPath: "/config"
+              name: ha-storage
+            - mountPath: "/dev/ttyACM0"
+              name: dev-usb0
+            - mountPath: "/dev/ttyAMA0"
+              name: dev-ama0
