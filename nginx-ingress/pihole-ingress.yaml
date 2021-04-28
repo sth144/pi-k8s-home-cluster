@@ -1,16 +1,16 @@
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-        namespace: default
-        name: pihole-ingress
-        annotations:
-                nginx.ingress.kubernetes.io/rewrite-target: /
+  namespace: default
+  name: pihole-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-        rules:
-                - host: pi.hole
-                  http:
-                          paths:
-                                  - path: /
-                                    backend:
-                                            serviceName: pihole
-                                            servicePort: 80
+  rules:
+    - host: pi.hole
+      http:
+        paths:
+          - path: /
+            backend:
+            serviceName: pihole
+            servicePort: 80
