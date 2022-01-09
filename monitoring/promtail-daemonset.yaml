@@ -1,0 +1,85 @@
+# https://grafana.com/docs/loki/latest/clients/promtail/installation/#helm
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: promtail
+  template:
+    metadata:
+      labels:
+        name: promtail
+    spec:
+      # serviceAccount: <SERVICE_ACCOUNT>
+      # serviceAccountName: <SERVICE_ACCOUNT>
+      volumes:
+        - name: logs
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: promtail-targets
+          hostPath:
+            path: /etc/promtail/
+        - name: promtail-config
+          configMap:
+            name: promtail-config
+            items:
+              - key: promtail
+                path: promtail.yaml
+      containers:
+        - name: promtail-container
+          image: grafana/promtail
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          volumeMounts:
+            - name: logs
+              mountPath: /var/lib/docker/containers
+            - name: promtail-config
+              mountPath: /etc/promtail
+            - name: promtail-targets
+              mountPath: /etc/promtail-targets/
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+data:
+  promtail: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://192.168.1.245:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: system
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: varlogs
+              host: picocluster
+              __path__: /var/log/*log
+
+      - job_name: containers
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: containers
+              __path__: /var/lib/docker/containers/*/*.log
+        file_sd_configs:
+          - files:
+            - /etc/promtail-targets/promtail-targets.yaml
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: container_id
+          - source_labels: [container_id]
+            target_label: __path__
+            replacement: /var/lib/docker/containers/$1*/*.log

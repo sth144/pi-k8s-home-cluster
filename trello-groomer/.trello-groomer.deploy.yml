@@ -124,6 +124,8 @@ spec:
   selector:
     matchLabels:
       directory: log
+
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -144,7 +146,7 @@ spec:
     spec:
       containers:
         - name: trello-groomer-todo
-          image: sthinds/trello-groomer
+          image: sthinds/trello-groomer:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: trello-groomer-config-volume
@@ -155,6 +157,8 @@ spec:
               mountPath: /usr/src/app/log
             - name: trello-groomer-timezone
               mountPath: /etc/localtime
+            - name: trello-groomer-ssl
+              mountPath: /etc/ssl/certs
           env:
             - name: WHICH_GROOMER
               value: "start-todo-groomer"
@@ -171,6 +175,9 @@ spec:
         - name: trello-groomer-timezone
           hostPath:
             path: /usr/share/zoneinfo/America/Chicago
+        - name: trello-groomer-ssl
+          hostPath:
+            path: /etc/ssl/certs/
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -191,7 +198,7 @@ spec:
     spec:
       containers:
         - name: trello-groomer-work
-          image: sthinds/trello-groomer
+          image: sthinds/trello-groomer:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: trello-groomer-config-volume
@@ -202,6 +209,8 @@ spec:
               mountPath: /usr/src/app/log
             - name: trello-groomer-timezone
               mountPath: /etc/localtime
+            - name: trello-groomer-ssl
+              mountPath: /etc/ssl/certs
           env:
             - name: WHICH_GROOMER
               value: "start-work-groomer"
@@ -218,6 +227,9 @@ spec:
         - name: trello-groomer-timezone
           hostPath:
             path: /usr/share/zoneinfo/America/Chicago
+        - name: trello-groomer-ssl
+          hostPath:
+            path: /etc/ssl/certs/
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -238,7 +250,7 @@ spec:
     spec:
       containers:
         - name: trello-groomer-media
-          image: sthinds/trello-groomer
+          image: sthinds/trello-groomer:latest
           imagePullPolicy: Always
           volumeMounts:
             - name: trello-groomer-config-volume
@@ -249,6 +261,8 @@ spec:
               mountPath: /usr/src/app/log
             - name: trello-groomer-timezone
               mountPath: /etc/localtime
+            - name: trello-groomer-ssl
+              mountPath: /etc/ssl/certs
           env:
             - name: WHICH_GROOMER
               value: "start-media-groomer"
@@ -265,3 +279,22 @@ spec:
         - name: trello-groomer-timezone
           hostPath:
             path: /usr/share/zoneinfo/America/Chicago
+        - name: trello-groomer-ssl
+          hostPath:
+            path: /etc/ssl/certs/
+# TODO: get this working?
+# ---
+# apiVersion: batch/v1beta1
+# kind: CronJob
+# metadata:
+#   name: restart-trello-groomers
+# spec:
+#   concurrencyPolicy: Forbid
+#   schedule: '0 0 * * 0' # Run once a week at midnight on Sunday morning
+#   jobTemplate:
+#     spec:
+#       backoffLimit: 2
+#       activeDeadlineSeconds: 600
+#       template:
+#         spec:
+#           restartPolicy: Never

@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf
+  labels:
+    k8s-app: telegraf
+data:
+  telegraf.conf: |+
+    [global_tags]
+      env = "$ENV"
+    [agent]
+      hostname = "$HOSTNAME"
+      interval = "60s"
+      round_interval = true
+      metric_batch_size = 1000
+      metric_buffer_limit = 10000
+      collection_jitter = "0s"
+      flush_interval = "10s"
+      flush_jitter = "2s"
+      precision = ""
+      debug = false
+      quiet = true
+    [[outputs.influxdb]]
+      urls = ["http://192.168.1.245:8086"]
+    [[inputs.cpu]]
+      percpu = true
+      totalcpu = true
+      collect_cpu_time = false
+      report_active = false
+    [[inputs.disk]]
+      ignore_fs = ["tmpfs", "devtmpfs", "devfs"]
+    [[inputs.diskio]]
+    [[inputs.kernel]]
+    [[inputs.mem]]
+    [[inputs.processes]]
+    [[inputs.swap]]
+    [[inputs.system]]
+    [[inputs.procstat]]
+      pid_file = "/home/picocluster/Volumes/trello-groomer-cache/pid.todo"
+    [[inputs.procstat]]
+      pid_file = "/home/picocluster/Volumes/trello-groomer-cache/pid.media"
+    [[inputs.procstat]]
+      pid_file = "/home/picocluster/Volumes/trello-groomer-cache/pid.work"
+    [[inputs.docker]]
+      endpoint = "unix:///var/run/docker.sock"
+    [[inputs.kubernetes]]
+      url = "https://192.168.1.240:6443"
+      insecure_skip_verify = true
+---
+# Section: Daemonset
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegraf
+  labels:
+    k8s-app: telegraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+        name: telegraf
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - pc2
+      containers:
+        - name: telegraf
+          image: docker.io/telegraf:1.9.2
+          volumeMounts:
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            - name: utmp
+              mountPath: /var/run/utmp
+              readOnly: true
+            - name: trello-groomer-cache
+              mountPath: /home/picocluster/Volumes/trello-groomer-cache
+            - name: config
+              mountPath: /etc/telegraf
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: utmp
+          hostPath:
+            path: /var/run/utmp
+        - name: trello-groomer-cache
+          hostPath:
+            path: /home/picocluster/Volumes/trello-groomer-cache
+        - name: config
+          configMap:
+            name: telegraf
