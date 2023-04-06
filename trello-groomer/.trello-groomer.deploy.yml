@@ -162,6 +162,9 @@ spec:
           env:
             - name: WHICH_GROOMER
               value: "start-todo-groomer"
+          resources:
+            limits:
+              memory: "100Mi"
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:
@@ -214,6 +217,9 @@ spec:
           env:
             - name: WHICH_GROOMER
               value: "start-work-groomer"
+          resources:
+            limits:
+              memory: "100Mi"
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:
@@ -266,6 +272,9 @@ spec:
           env:
             - name: WHICH_GROOMER
               value: "start-media-groomer"
+          resources:
+            limits:
+              memory: "100Mi"
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:

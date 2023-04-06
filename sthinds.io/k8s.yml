@@ -1,0 +1,103 @@
+# TODO: define storage via PersistentVolumeClaims (replicate?)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sthinds.io
+spec:
+  selector:
+    matchLabels:
+      app: sthinds.io
+  template:
+    metadata:
+      labels:
+        app: sthinds.io
+    spec:
+      containers:
+      - name: sthinds-io
+        image: sthinds/sthinds.io:arm64
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+      - name: mongodb
+        image: arm64v8/mongo:bionic
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 27017
+        # TODO: (from docker-compose.yml)
+        # volumes:
+        #   - /data/db:/data/db
+        # environment:
+        #   - MONGO_INITDB_ROOT_USERNAME=admin
+        #   - MONGO_INITDB_ROOT_PASSWORD=$MONGODB_PASSWORD
+        #   - MONGO_INITDB_DATABASE=test,prod,dev
+        # command: mongod
+        # privileged: true
+        # restart: unless-stopped
+      - name: redis
+        image: redis:alpine
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 6379
+        # TODO: (from docker-compose.yml)
+        #   volumes:
+        #     - ./volumes/redis/redis-data:/var/lib/redis
+        #     - ./volumes/redis/redis.conf:/usr/local/etc/redis/redis.conf
+        #   environment:
+        #    - REDIS_REPLICATION_MODE=master
+        #   restart: unless-stopped
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sthinds-io
+spec:
+  type: NodePort
+  selector:
+    app: sthinds.io
+  ports:
+    # TODO: is this right?
+    - port: 8080
+      targetPort: 80
+      name: sthinds-io
+  externalIPs:
+    - 192.168.1.240
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: sthinds-io-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  defaultBackend:
+    service:
+      name: sthinds-io
+      port:
+        # TODO: what port?
+        number: 8080
+  rules:
+    - host: sthinds.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sthinds-io
+                port: 
+                  number: 8080

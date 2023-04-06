@@ -13,6 +13,10 @@ spec:
       labels:
         name: promtail
     spec:
+      tolerations:
+        # want to run on master node so we can monitor it as well
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
       # serviceAccount: <SERVICE_ACCOUNT>
       # serviceAccountName: <SERVICE_ACCOUNT>
       volumes:
