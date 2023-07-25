@@ -25,10 +25,10 @@ spec:
     required:
       nodeSelectorTerms:
         - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-              - pc2
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - pc2
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -65,10 +65,10 @@ spec:
     required:
       nodeSelectorTerms:
         - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-              - pc2
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - pc2
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -105,10 +105,10 @@ spec:
     required:
       nodeSelectorTerms:
         - matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-              - pc2
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - pc2
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -125,7 +125,6 @@ spec:
     matchLabels:
       directory: log
 
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,7 +132,7 @@ metadata:
   name: trello-groomer-todo
   labels:
     app: trello-groomer-todo
-spec: 
+spec:
   replicas: 1
   selector:
     matchLabels:
@@ -164,7 +163,11 @@ spec:
               value: "start-todo-groomer"
           resources:
             limits:
-              memory: "100Mi"
+              memory: 500Mi
+              cpu: 1000m
+            requests:
+              memory: 200Mi
+              cpu: 200m
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:
@@ -188,7 +191,7 @@ metadata:
   name: trello-groomer-work
   labels:
     app: trello-groomer-work
-spec: 
+spec:
   replicas: 1
   selector:
     matchLabels:
@@ -219,7 +222,11 @@ spec:
               value: "start-work-groomer"
           resources:
             limits:
-              memory: "100Mi"
+              memory: 500Mi
+              cpu: 1000m
+            requests:
+              memory: 200Mi
+              cpu: 200m
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:
@@ -243,7 +250,7 @@ metadata:
   name: trello-groomer-media
   labels:
     app: trello-groomer-media
-spec: 
+spec:
   replicas: 1
   selector:
     matchLabels:
@@ -274,7 +281,11 @@ spec:
               value: "start-media-groomer"
           resources:
             limits:
-              memory: "100Mi"
+              memory: 500Mi
+              cpu: 1000m
+            requests:
+              memory: 200Mi
+              cpu: 200m
       volumes:
         - name: trello-groomer-config-volume
           persistentVolumeClaim:

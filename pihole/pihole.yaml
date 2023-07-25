@@ -134,6 +134,7 @@ spec:
     - port: 80
       targetPort: 80
       name: pihole
+      nodePort: 30390
     - port: 53
       targetPort: 53
       protocol: TCP
@@ -144,4 +145,3 @@ spec:
       name: dns-udp
   externalIPs:
     - 192.168.1.240
-    - 192.168.1.241
