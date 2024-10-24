@@ -7,7 +7,7 @@ WORKER1_IP=pc1
 WORKER2_IP=pc2
 
 # Initialize Kubernetes on the master node
-kubeadm init --apiserver-advertise-address=$MASTER_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=Mem
+sudo kubeadm init --apiserver-advertise-address=$MASTER_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=Mem
 
 # Copy kubeadm config to user's home directory
 mkdir -p $HOME/.kube
