@@ -1,0 +1,19 @@
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+runners:
+  image:
+    arch: arm64
+  tags: "k8s, kubernetes"
+  helpers:
+    image: gitlab/gitlab-runner-helper:arm64-latest
+  config: |
+    [[runners]]
+      name = "Kubernetes Prod Runner"
+      executor = "kubernetes"
+    [runners.kubernetes]
+      image = "ubuntu:20.04"
+      helper_image = "gitlab/gitlab-runner-helper:arm64-latest"

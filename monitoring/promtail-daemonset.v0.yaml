@@ -1,0 +1,112 @@
+# https://grafana.com/docs/loki/latest/clients/promtail/installation/#helm
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: promtail
+  template:
+    metadata:
+      labels:
+        name: promtail
+    spec:
+      tolerations:
+        # want to run on master node so we can monitor it as well
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      # serviceAccount: <SERVICE_ACCOUNT>
+      # serviceAccountName: <SERVICE_ACCOUNT>
+      volumes:
+        - name: docker-logs
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: varlog
+          hostPath:
+            path: /var/log
+        #- name: containerd-logs
+        #  hostPath:
+        #    path: /var/log/pods
+        - name: promtail-targets
+          hostPath:
+            path: /etc/promtail/
+        - name: promtail-config
+          configMap:
+            name: promtail-config
+            items:
+              - key: promtail
+                path: promtail.yaml
+      containers:
+        - name: promtail-container
+          image: grafana/promtail:latest
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+            - -config.expand-env=true  # Enable expanding environment variables
+          volumeMounts:
+            - name: docker-logs
+              mountPath: /var/lib/docker/containers
+            #- name: containerd-logs
+            #  mountPath: /var/log/pods
+            - name: promtail-config
+              mountPath: /etc/promtail
+            - name: promtail-targets
+              mountPath: /etc/promtail-targets/
+            - name: varlog
+              mountPath: /var/log
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+data:
+  promtail: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+    positions:
+      filename: /tmp/positions.yaml
+    clients:
+      - url: http://192.168.1.245:3100/loki/api/v1/push
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+        - role: pod
+      - job_name: system
+        static_configs:
+        - targets:
+          - localhost
+          labels:
+            job: varlogs
+            host: picocluster
+            __path__: /var/log/*log
+      #- job_name: containers
+      #  static_configs:
+      #  - targets:
+      #    - localhost
+      #    labels:
+      #      job: containerd-containersa
+        #pipeline_stages:
+      #  - cri:
+      #    - parser:
+      #        type: cri
+      #        config:
+      #          cri_log_path: "/var/log/pods/*/*.log"
+      #  file_sd_configs:
+      #  - files:
+      #    - /etc/promtail-targets/promtail-targets.yaml
+      #  relabel_configs:
+      #  - source_labels: [__address__]
+      #    target_label: container_id
+      #  - source_labels: [container_id]
+      #    target_label: __path__
+      #    replacement: /var/log/pods/$1*/*.log
+      - job_name: cron
+        static_configs:
+        - targets:
+          - localhost
+          labels:
+            job: cron
+            __path__: /home/picocluster/.cache/.workflow/*log
+

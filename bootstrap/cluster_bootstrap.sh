@@ -22,3 +22,6 @@ chmod +x join-command.sh
 # Run the join command on worker nodes
 ssh picocluster@$WORKER1_IP 'bash -s' < join-command.sh
 ssh picocluster@$WORKER2_IP 'bash -s' < join-command.sh
+
+kubectl taint node pc0 node-role.kubernetes.io/control-plane:NoSchedule-
+kubectl taint node pc0 node-role.kubernetes.io/master:NoSchedule-

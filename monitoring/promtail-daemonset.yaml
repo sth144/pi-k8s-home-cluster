@@ -1,89 +1,109 @@
-# https://grafana.com/docs/loki/latest/clients/promtail/installation/#helm
-
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: promtail-daemonset
+  name: promtail
 spec:
   selector:
     matchLabels:
-      name: promtail
+      app: promtail
   template:
     metadata:
       labels:
-        name: promtail
+        app: promtail
     spec:
+      serviceAccountName: promtail-service-account
       tolerations:
         # want to run on master node so we can monitor it as well
         - key: node-role.kubernetes.io/master
           effect: NoSchedule
-      # serviceAccount: <SERVICE_ACCOUNT>
-      # serviceAccountName: <SERVICE_ACCOUNT>
+      containers:
+        - name: promtail
+          image: grafana/promtail:latest
+          args:
+            - -config.file=/etc/promtail/config-prom.yaml
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: config-volume
+              mountPath: /etc/promtail
+            - name: positions
+              mountPath: /var/lib/promtail
       volumes:
-        - name: logs
+        - name: varlog
           hostPath:
-            path: /var/lib/docker/containers
-        - name: promtail-targets
-          hostPath:
-            path: /etc/promtail/
-        - name: promtail-config
+            path: /var/log
+        - name: config-volume
           configMap:
             name: promtail-config
-            items:
-              - key: promtail
-                path: promtail.yaml
-      containers:
-        - name: promtail-container
-          image: grafana/promtail
-          args:
-            - -config.file=/etc/promtail/promtail.yaml
-          volumeMounts:
-            - name: logs
-              mountPath: /var/lib/docker/containers
-            - name: promtail-config
-              mountPath: /etc/promtail
-            - name: promtail-targets
-              mountPath: /etc/promtail-targets/
+        - name: positions
+          hostPath:
+            path: /var/lib/promtail
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: promtail-config
 data:
-  promtail: |
+  config-prom.yaml: |
     server:
       http_listen_port: 9080
       grpc_listen_port: 0
-
     positions:
-      filename: /tmp/positions.yaml
-
+      filename: /var/lib/promtail/positions.yaml
     clients:
       - url: http://192.168.1.245:3100/loki/api/v1/push
-
     scrape_configs:
-      - job_name: system
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: varlogs
-              host: picocluster
-              __path__: /var/log/*log
-
-      - job_name: containers
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: containers
-              __path__: /var/lib/docker/containers/*/*.log
-        file_sd_configs:
-          - files:
-            - /etc/promtail-targets/promtail-targets.yaml
+      - job_name: kubernetes-logs
+        kubernetes_sd_configs:
+          - role: node
         relabel_configs:
-          - source_labels: [__address__]
-            target_label: container_id
-          - source_labels: [container_id]
-            target_label: __path__
-            replacement: /var/lib/docker/containers/$1*/*.log
+          - source_labels: ['__meta_kubernetes_node_address_InternalIP']
+            target_label: 'instance'
+          - source_labels: ['__meta_kubernetes_node_label_kubernetes_io_hostname']
+            target_label: 'host'
+          - source_labels: [__meta_kubernetes_container_name]
+            target_label: container_name
+          - source_labels: ['__meta_kubernetes_pod_name']
+            target_label: '__path__'
+            action: replace
+            regex: '(.*)'
+            replacement: '/var/log/containers/$1/*.log'  # Adjust the path as per your log file format
+        pipeline_stages:
+          - match:
+              selector: '{container!="POD"}'
+              stages:
+                - docker:
+                - labels:
+                    container_id:
+                - output:
+                    source: container_id
+                    labels: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail-nodes-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list", "get", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail-service-account
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail-nodes-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: promtail-service-account
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: promtail-nodes-reader
+  apiGroup: rbac.authorization.k8s.io
+
