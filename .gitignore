@@ -1,1 +1,2 @@
 bootstrap/join-command.sh
+gitlab-runner/.env.REGISTRATION_TOKEN

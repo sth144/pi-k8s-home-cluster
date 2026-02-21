@@ -36,3 +36,22 @@ roleRef:
   kind: Role
   name: runner-role
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-deployer
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitlab-deployer-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin  # You can limit this if needed
+subjects:
+  - kind: ServiceAccount
+    name: gitlab-deployer
+    namespace: default

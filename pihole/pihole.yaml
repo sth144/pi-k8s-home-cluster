@@ -95,6 +95,7 @@ spec:
   selector:
     matchLabels:
       app: pihole
+      #name: pihole
   template:
     metadata:
       labels:
@@ -103,11 +104,26 @@ spec:
     spec:
       containers:
         - name: pihole
-          image: pihole/pihole:latest
+          image: pihole/pihole:2024.03.2
+          #image: pihole/pihole:latest
           imagePullPolicy: Always
           env:
-            - name: ServerIP
-              value: 192.168.1.240
+            #- name: ServerIP
+            #  value: 192.168.1.240
+            - name: PIHOLE_WEBSSL
+              value: "0"
+            - name: VIRTUAL_HOST
+              value: ""
+            - name: TZ
+              value: "America/Chicago"
+            - name: PIHOLE_PASSWORD
+              value: $PIHOLE_PASSWORD
+            - name: DNSMASQ_LISTENING
+              value: "all"
+            - name: PIHOLE_WEBSSL
+              value: "0"
+            - name: VIRTUAL_HOST
+              value: ""
           volumeMounts:
             - name: pihole-local-etc-volume
               mountPath: "/etc/pihole"
@@ -129,7 +145,7 @@ spec:
   type: NodePort
   selector:
     app: pihole
-    name: pihole
+    #name: pihole
   ports:
     - port: 80
       targetPort: 80
@@ -143,5 +159,5 @@ spec:
       targetPort: 53
       protocol: UDP
       name: dns-udp
-  externalIPs:
-    - 192.168.1.240
+  #externalIPs:
+  #  - 192.168.1.240
