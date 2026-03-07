@@ -28,6 +28,17 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 3550
+          # CHANGED: low-risk TCP probes for availability checks.
+          livenessProbe:
+            tcpSocket:
+              port: 3550
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 3550
+            initialDelaySeconds: 10
+            periodSeconds: 10
           volumeMounts:
             - name: ssh-keys-volume
               mountPath: /root/.ssh

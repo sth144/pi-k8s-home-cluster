@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1 # CHANGED: migrated from deprecated v1beta1 API
 kind: Ingress
 metadata:
   namespace: default
@@ -10,6 +10,9 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: home-assistant
-              servicePort: 8123
+              service:
+                name: home-assistant
+                port:
+                  number: 8123

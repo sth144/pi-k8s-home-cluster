@@ -18,9 +18,29 @@ spec:
           effect: NoSchedule
       containers:
         - name: promtail
-          image: grafana/promtail:latest
+          # CHANGED: pinned from floating latest tag.
+          image: grafana/promtail:2.9.8
+          imagePullPolicy: IfNotPresent
           args:
             - -config.file=/etc/promtail/config-prom.yaml
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 9080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
           volumeMounts:
             - name: varlog
               mountPath: /var/log
@@ -53,31 +73,16 @@ data:
     clients:
       - url: http://192.168.1.245:3100/loki/api/v1/push
     scrape_configs:
-      - job_name: kubernetes-logs
-        kubernetes_sd_configs:
-          - role: node
-        relabel_configs:
-          - source_labels: ['__meta_kubernetes_node_address_InternalIP']
-            target_label: 'instance'
-          - source_labels: ['__meta_kubernetes_node_label_kubernetes_io_hostname']
-            target_label: 'host'
-          - source_labels: [__meta_kubernetes_container_name]
-            target_label: container_name
-          - source_labels: ['__meta_kubernetes_pod_name']
-            target_label: '__path__'
-            action: replace
-            regex: '(.*)'
-            replacement: '/var/log/containers/$1/*.log'  # Adjust the path as per your log file format
+      # CHANGED: switch to static container log path for reliable scraping on containerd/docker.
+      - job_name: kubernetes-containers
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: kubernetes-containers
+              __path__: /var/log/containers/*.log
         pipeline_stages:
-          - match:
-              selector: '{container!="POD"}'
-              stages:
-                - docker:
-                - labels:
-                    container_id:
-                - output:
-                    source: container_id
-                    labels: {}
+          - cri: {}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -106,4 +111,3 @@ roleRef:
   kind: ClusterRole
   name: promtail-nodes-reader
   apiGroup: rbac.authorization.k8s.io
-

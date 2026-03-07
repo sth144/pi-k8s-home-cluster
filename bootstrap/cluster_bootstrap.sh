@@ -1,5 +1,5 @@
-
 #!/bin/bash
+set -euo pipefail
 
 # Variables
 MASTER_IP=192.168.1.240
@@ -14,14 +14,13 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
-# Generate token for worker nodes to join the cluster
-echo "kubeadm reset" > join-command.sh
-kubeadm token create --print-join-command >> join-command.sh
-chmod +x join-command.sh
+# CHANGED: keep join command in-memory so token is not written to disk.
+JOIN_COMMAND="$(kubeadm token create --print-join-command)"
 
 # Run the join command on worker nodes
-ssh picocluster@$WORKER1_IP 'bash -s' < join-command.sh
-ssh picocluster@$WORKER2_IP 'bash -s' < join-command.sh
+ssh picocluster@$WORKER1_IP "sudo kubeadm reset -f && sudo ${JOIN_COMMAND}"
+ssh picocluster@$WORKER2_IP "sudo kubeadm reset -f && sudo ${JOIN_COMMAND}"
 
-kubectl taint node pc0 node-role.kubernetes.io/control-plane:NoSchedule-
-kubectl taint node pc0 node-role.kubernetes.io/master:NoSchedule-
+# CHANGED: taint removal is best-effort for repeatable runs.
+kubectl taint node pc0 node-role.kubernetes.io/control-plane:NoSchedule- || true
+kubectl taint node pc0 node-role.kubernetes.io/master:NoSchedule- || true

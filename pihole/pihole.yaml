@@ -2,9 +2,19 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: local
+  # CHANGED: align StorageClass name with PV/PVC references below.
+  name: local-storage
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pihole-secrets
+type: Opaque
+stringData:
+  # CHANGED: keep password out of plaintext env values in Deployment.
+  PIHOLE_PASSWORD: "CHANGE_ME"
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -106,7 +116,7 @@ spec:
         - name: pihole
           image: pihole/pihole:2024.03.2
           #image: pihole/pihole:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             #- name: ServerIP
             #  value: 192.168.1.240
@@ -117,13 +127,27 @@ spec:
             - name: TZ
               value: "America/Chicago"
             - name: PIHOLE_PASSWORD
-              value: $PIHOLE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole-secrets
+                  key: PIHOLE_PASSWORD
             - name: DNSMASQ_LISTENING
               value: "all"
-            - name: PIHOLE_WEBSSL
-              value: "0"
-            - name: VIRTUAL_HOST
-              value: ""
+          # CHANGED: added probes for faster detection/recovery.
+          livenessProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /admin/
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
           volumeMounts:
             - name: pihole-local-etc-volume
               mountPath: "/etc/pihole"

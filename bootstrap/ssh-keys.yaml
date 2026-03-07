@@ -3,6 +3,7 @@ kind: Secret
 metadata:
   name: ssh-keys-secret
 type: Opaque
-data:
-  private_key: $PRIVATE_KEY
-  public_key: $PUBLIC_KEY
+stringData:
+  # CHANGED: stringData avoids invalid base64 placeholders in data.
+  private_key: "${PRIVATE_KEY}"
+  public_key: "${PUBLIC_KEY}"
