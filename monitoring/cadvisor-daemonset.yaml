@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  labels:
+    app: cadvisor
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+    spec:
+      tolerations:
+        # Run on control-plane nodes too so every node is covered.
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      containers:
+        - name: cadvisor
+          image: gcr.io/cadvisor/cadvisor:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          ports:
+            - name: http
+              containerPort: 8080
+              hostPort: 18070
+              protocol: TCP
+          args:
+            - --docker_only=true
+            - --housekeeping_interval=30s
+            - --store_container_labels=false
+          volumeMounts:
+            - name: rootfs
+              mountPath: /rootfs
+              readOnly: true
+            - name: var-run
+              mountPath: /var/run
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: var-lib-docker
+              mountPath: /var/lib/docker
+              readOnly: true
+            - name: dev-disk
+              mountPath: /dev/disk
+              readOnly: true
+            - name: dev-kmsg
+              mountPath: /dev/kmsg
+      volumes:
+        - name: rootfs
+          hostPath:
+            path: /
+        - name: var-run
+          hostPath:
+            path: /var/run
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: var-lib-docker
+          hostPath:
+            path: /var/lib/docker
+        - name: dev-disk
+          hostPath:
+            path: /dev/disk
+        - name: dev-kmsg
+          hostPath:
+            path: /dev/kmsg
+            type: CharDevice
