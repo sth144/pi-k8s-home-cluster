@@ -112,6 +112,10 @@ spec:
         app: pihole
         name: pihole
     spec:
+      #hostNetwork: true
+      #dnsPolicy: ClusterFirstWithHostNet
+      #nodeSelector:
+      #  kubernetes.io/hostname: pc1
       containers:
         - name: pihole
           image: pihole/pihole:2024.03.2
@@ -166,7 +170,9 @@ kind: Service
 metadata:
   name: pihole
 spec:
-  type: NodePort
+  #type: NodePort
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.244  # note: this is behind MetalLB, just needs to be an unused IP, not on LAN
   selector:
     app: pihole
     #name: pihole
@@ -174,7 +180,7 @@ spec:
     - port: 80
       targetPort: 80
       name: pihole
-      nodePort: 30390
+      #nodePort: 30390
     - port: 53
       targetPort: 53
       protocol: TCP

@@ -24,3 +24,6 @@ ssh picocluster@$WORKER2_IP "sudo kubeadm reset -f && sudo ${JOIN_COMMAND}"
 # CHANGED: taint removal is best-effort for repeatable runs.
 kubectl taint node pc0 node-role.kubernetes.io/control-plane:NoSchedule- || true
 kubectl taint node pc0 node-role.kubernetes.io/master:NoSchedule- || true
+
+kubectl apply -f $HOME/Projects/network/coredns-patch.yaml
+kubectl rollout restart deployment coredns -n kube-system
