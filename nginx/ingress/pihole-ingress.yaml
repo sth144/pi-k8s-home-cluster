@@ -4,19 +4,13 @@ metadata:
   namespace: default
   name: pihole-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
     kubernetes.io/ingress.class: "nginx"
 spec:
-  defaultBackend:
-    service:
-      name: pihole
-      port:
-        number: 80
   rules:
     - host: pi.hole
       http:
         paths:
-          - path: /admin
+          - path: /
             pathType: Prefix
             backend:
               service:
