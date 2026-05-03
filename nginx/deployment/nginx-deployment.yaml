@@ -115,10 +115,16 @@ data:
       server {
         listen       80;
         # NOTE: need to append /admin or you get a 403, can we redirect?
-        server_name  pihole.pc2;
+        server_name  pihole.pc2 pi.hole;
+        location = /admin {
+          return 301 /index.php;
+        }
+        location = /admin/ {
+          return 301 /index.php;
+        }
         location / {
           # TODO: automatically prepend /admin/?
-          proxy_pass http://192.168.1.240:30390/admin/$request_uri;
+          proxy_pass http://pihole.default.svc.cluster.local/;
           proxy_http_version 1.1;
           proxy_set_header Host $host:$server_port;
           proxy_set_header X-Real-IP $remote_addr;
